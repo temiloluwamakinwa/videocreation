@@ -2,136 +2,310 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Video Creation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Creation: write a prompt, get a video</title>
+<meta name="description" content="Write a prompt, attach references, and get a 60 fps motion launch video with original music.">
+<meta name="theme-color" content="#09090B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root { --ink:#111827; --mut:#6b7280; --line:#e5e7eb; --acc:#6C5CE7; --bg:#f7f6f3; }
-  * { box-sizing: border-box; }
-  body { margin:0; font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--ink); background:var(--bg); }
-  main { max-width:720px; margin:0 auto; padding:32px 20px 80px; }
-  header { display:flex; justify-content:space-between; align-items:center; }
-  h1 { font-size:28px; margin:0; }
-  p.sub { color:var(--mut); margin:6px 0 24px; }
-  .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:20px; }
-  label { display:block; font-weight:600; font-size:14px; margin:14px 0 6px; }
-  textarea,input,select { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font:inherit; background:#fff; }
-  textarea { min-height:110px; resize:vertical; }
-  .row { display:flex; gap:12px; } .row > * { flex:1; }
-  button { font:inherit; font-weight:600; border:0; border-radius:10px; padding:11px 18px; cursor:pointer; background:var(--acc); color:#fff; }
-  button.ghost { background:#fff; color:var(--ink); border:1px solid var(--line); }
-  button:disabled { opacity:.5; cursor:not-allowed; }
-  #status { margin-top:16px; font-size:14px; color:var(--mut); white-space:pre-wrap; }
-  #status.err { color:#b91c1c; }
-  video { width:100%; max-height:70vh; border-radius:12px; background:#000; margin-top:14px; }
-  .gal { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
-  .gal a { display:block; padding:12px; border:1px solid var(--line); border-radius:12px; text-decoration:none; color:inherit; font-size:13px; }
-  dialog { border:1px solid var(--line); border-radius:16px; max-width:460px; width:92%; }
-  small { color:var(--mut); }
+  :root {
+    --bg:#09090B; --panel:#131317; --panel-2:#1A1A1F; --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.16);
+    --text:#F4F2EE; --muted:#A7A5AE; --dim:#6E6C76;
+    --coral:#FF7A50; --amber:#FFB25C; --rose:#F2547D; --ok:#5BD38A; --err:#FF6B6B;
+    --serif:'Instrument Serif',Georgia,serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text)}
+  body{font:15px/1.55 'Inter Tight',system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden}
+  a{color:inherit;text-decoration:none} button{font:inherit;color:inherit;cursor:pointer}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:10px}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px;position:relative}
+  em{font-family:var(--serif);font-weight:400;color:var(--amber)}
+
+  .bgfx{position:absolute;inset:0 0 auto;height:900px;pointer-events:none;overflow:hidden}
+  .bgfx::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:56px 56px;-webkit-mask-image:radial-gradient(70% 60% at 50% 25%,#000 30%,transparent 75%);mask-image:radial-gradient(70% 60% at 50% 25%,#000 30%,transparent 75%)}
+  .bgfx i{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55}
+  .bgfx i:nth-child(1){width:620px;height:420px;left:calc(50% - 470px);top:-170px;background:#8A3A2A;animation:drift 18s ease-in-out infinite alternate}
+  .bgfx i:nth-child(2){width:560px;height:380px;left:calc(50% - 40px);top:-150px;background:#6B2A4A;animation:drift 22s ease-in-out infinite alternate-reverse}
+  .bgfx i:nth-child(3){width:420px;height:300px;left:calc(50% - 200px);top:40px;background:#7A4A1C;opacity:.35;animation:drift 26s ease-in-out infinite alternate}
+  @keyframes drift{to{transform:translate(40px,30px) scale(1.08)}}
+
+  .nav{position:sticky;top:14px;z-index:20;margin:14px auto 0;max-width:1040px;display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 8px 0 20px;border:1px solid var(--line);border-radius:999px;background:rgba(15,15,18,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.03em}
+  .logo b{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--amber),var(--coral) 55%,var(--rose));position:relative}
+  .logo b::after{content:'';position:absolute;left:8px;top:6px;border-left:8px solid #1a0c08;border-top:5px solid transparent;border-bottom:5px solid transparent}
+  .nav-r{display:flex;align-items:center;gap:4px}
+  .nav-r a{padding:8px 14px;border-radius:999px;color:var(--muted);font-size:14px;font-weight:500}
+  .nav-r a:hover{color:var(--text)}
+  .conn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px 0 14px;border:0;border-radius:999px;background:var(--text);color:#111;font-size:14px;font-weight:600;margin-left:6px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#9a9aa2}.dot.ok{background:#1FA866;box-shadow:0 0 0 3px rgba(31,168,102,.18)}.dot.err{background:#E5484D}
+
+  .hero{position:relative;z-index:1;text-align:center;padding:84px 0 0}
+  .badge{display:inline-flex;align-items:center;gap:10px;height:32px;padding:0 14px 0 5px;border:1px solid var(--line);border-radius:999px;background:rgba(19,19,23,.7);font-size:13px;color:var(--muted)}
+  .badge span{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;background:var(--amber);color:#2a1404;font-weight:700;font-size:12px}
+  .badge span::before{content:'';width:6px;height:6px;border-radius:50%;background:#C92A1E;animation:rec 1.6s ease-in-out infinite}
+  @keyframes rec{50%{opacity:.25}}
+  h1{font-size:clamp(44px,8vw,92px);line-height:.98;letter-spacing:-.045em;font-weight:700;margin:22px 0 18px}
+  h1 .ln{display:block}
+  .lede{max-width:560px;margin:0 auto 34px;color:var(--muted);font-size:17px}
+
+  .composer{max-width:720px;margin:0 auto;text-align:left;border:1px solid var(--line-2);border-radius:24px;background:linear-gradient(180deg,rgba(26,26,31,.92),rgba(19,19,23,.92));box-shadow:0 30px 80px -30px rgba(255,122,80,.25);padding:16px 16px 14px}
+  .composer:focus-within{border-color:rgba(255,178,92,.5)}
+  textarea{width:100%;min-height:104px;resize:vertical;border:0;outline:0;background:transparent;color:var(--text);font:inherit;font-size:16px;padding:6px 6px 10px}
+  textarea::placeholder{color:var(--dim)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;padding:0 4px}
+  .chips:empty{display:none}
+  .chip{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:6px 8px 6px 12px;border:1px solid var(--line-2);border-radius:999px;background:var(--panel-2);font-size:13px;color:var(--muted)}
+  .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
+  .chip button{border:0;background:transparent;color:var(--dim);font-size:16px;line-height:1;padding:0 4px}
+  .linkrow{display:none;gap:8px;padding:8px 4px 0}.linkrow.on{display:flex}
+  .linkrow input{flex:1;height:40px;padding:0 14px;border:1px solid var(--line-2);border-radius:12px;background:var(--bg);color:var(--text);font:inherit}
+  .bar{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:12px;border-top:1px solid var(--line)}
+  .icon,.ghost{height:40px;border:1px solid var(--line-2);border-radius:12px;background:var(--panel-2);padding:0 12px;font-size:14px;font-weight:500}
+  .icon:hover,.ghost:hover{border-color:var(--amber)}
+  .seg{display:inline-flex;padding:3px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+  .seg button{border:0;background:transparent;height:32px;padding:0 12px;border-radius:9px;color:var(--muted);font-size:13px;font-weight:600}
+  .seg button[aria-checked=true]{background:linear-gradient(135deg,var(--amber),var(--coral));color:#2a1404}
+  .sp{flex:1}
+  select{height:40px;border:1px solid var(--line-2);border-radius:12px;background:var(--panel-2);color:var(--text);font:inherit;font-size:13px;padding:0 10px}
+  .go{width:52px;height:52px;border-radius:50%;border:2px solid var(--line-2);background:var(--bg);display:grid;place-items:center}
+  .go .core{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--coral),var(--rose));transition:.2s}
+  .go:hover .core{transform:scale(1.12)}.go:disabled{opacity:.4;cursor:not-allowed}
+
+  .job{max-width:720px;margin:18px auto 0;text-align:left;border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:18px 20px}
+  .job h3{margin:0 0 4px;font-size:16px}.job p{margin:0;color:var(--muted);font-size:14px}
+  .steps{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px}
+  .steps li{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--dim)}
+  .steps li i{width:20px;height:20px;border-radius:50%;border:2px solid var(--line-2);flex:none}
+  .steps li.on{color:var(--text)}.steps li.on i{border-color:var(--amber);border-top-color:transparent;animation:spin .9s linear infinite}
+  .steps li.done{color:var(--muted)}.steps li.done i{background:var(--ok);border-color:var(--ok)}
+  .steps li.fail{color:var(--err)}.steps li.fail i{background:var(--err);border-color:var(--err)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .job video{width:100%;max-height:70vh;margin-top:16px;border-radius:14px;background:#000}
+  .job .acts{display:flex;gap:10px;margin-top:12px}
+  .btn{display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel-2);font-size:14px;font-weight:600}
+  .btn.pri{background:var(--text);color:#111;border-color:var(--text)}
+
+  .ticker{margin-top:90px;border-block:1px solid var(--line);overflow:hidden;white-space:nowrap;-webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+  .ticker div{display:inline-block;padding:22px 0;font:13px var(--mono);color:var(--muted);animation:tick 38s linear infinite}
+  .ticker span{margin:0 26px}.ticker b{color:var(--coral)}
+  @keyframes tick{to{transform:translateX(-50%)}}
+
+  .sec{padding:96px 0 0}
+  .sec-h{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:28px}
+  .sec-h h2{margin:0;font-size:clamp(34px,5vw,52px);letter-spacing:-.04em;line-height:1}
+  .sec-h p{margin:0;max-width:300px;color:var(--muted);font-size:14px}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .card{border:1px solid var(--line);border-radius:22px;background:var(--panel);padding:22px;min-height:200px;display:flex;flex-direction:column;justify-content:space-between}
+  .card small{font:12px var(--mono);color:var(--amber)}
+  .card h3{margin:0 0 6px;font-size:19px}.card p{margin:0;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+  .vid{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--panel);cursor:pointer;text-align:left;padding:0;display:block;width:100%}
+  .vid:hover{border-color:var(--amber)}
+  .vid video{width:100%;aspect-ratio:9/12;object-fit:cover;background:#000;display:block;pointer-events:none}
+  .vid div{padding:12px 14px}.vid b{display:block;font-size:13px;font-family:var(--mono);color:var(--amber);font-weight:500}
+  .vid span{display:block;font-size:13px;color:var(--muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .empty{grid-column:1/-1;border:1px dashed var(--line-2);border-radius:20px;padding:44px;text-align:center;color:var(--dim)}
+  footer{margin-top:96px;padding:28px 24px 44px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;color:var(--dim);font-size:13px;max-width:1120px;margin-inline:auto}
+  footer b{color:var(--text);margin-right:8px}
+
+  dialog{border:1px solid var(--line-2);border-radius:22px;background:var(--panel);color:var(--text);width:min(480px,92vw);padding:0}
+  dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(4px)}
+  .dlg{padding:24px}.dlg h3{margin:0 0 4px;font-size:20px}.dlg p{color:var(--muted);font-size:13px;margin:0 0 12px}
+  .dlg label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px}
+  .dlg input{width:100%;height:42px;padding:0 12px;border:1px solid var(--line-2);border-radius:12px;background:var(--bg);color:var(--text);font:inherit}
+  .dlg .row{display:flex;align-items:center;gap:10px;margin-top:18px}
+  .player{padding:14px}.player video{width:100%;max-height:78vh;border-radius:14px;background:#000}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,30px);opacity:0;pointer-events:none;background:var(--text);color:#111;padding:11px 18px;border-radius:999px;font-weight:600;font-size:14px;transition:.25s;z-index:50;max-width:90vw}
+  .toast.on{opacity:1;transform:translate(-50%,0)}.toast.err{background:var(--err)}
+  @media(max-width:760px){.cards{grid-template-columns:1fr}.nav-r a{display:none}.sec-h{flex-direction:column;align-items:flex-start}.bar{flex-wrap:wrap}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>Video Creation</h1>
-    <button class="ghost" id="settingsBtn">Settings</button>
-  </header>
-  <p class="sub">Describe your product. Get a motion launch video (MP4).</p>
+<div class="bgfx" aria-hidden="true"><i></i><i></i><i></i></div>
 
-  <div class="card">
-    <label for="prompt">What is the video about?</label>
-    <textarea id="prompt" placeholder="A launch video for my coffee shop app. Highlight ordering ahead, loyalty points and pickup times."></textarea>
-    <label for="links">Links (optional, one per line: website or repo)</label>
-    <textarea id="links" style="min-height:60px" placeholder="https://example.com"></textarea>
-    <div class="row">
-      <div><label for="format">Format</label>
-        <select id="format"><option value="portrait">Portrait (TikTok, Reels, Shorts)</option><option value="landscape">Landscape (YouTube)</option><option value="square">Square</option></select></div>
-      <div><label for="quality">Quality</label>
-        <select id="quality"><option value="standard">Standard (60 fps)</option><option value="draft">Draft (fast)</option><option value="high">High</option></select></div>
-    </div>
-    <p style="margin:18px 0 0"><button id="go">Create video</button></p>
-    <div id="status"></div>
-    <div id="player"></div>
+<nav class="nav">
+  <a class="logo" href="#"><b></b>videocreation</a>
+  <div class="nav-r">
+    <a href="#gallery">Gallery</a><a href="#how">How it works</a>
+    <button class="conn" id="connBtn" type="button"><span class="dot" id="dot"></span><span id="connTxt">Connect GitHub</span></button>
   </div>
+</nav>
 
-  <div class="card"><strong>Gallery</strong><div class="gal" id="gallery" style="margin-top:12px"></div></div>
+<main class="wrap">
+  <section class="hero">
+    <div class="badge"><span>New</span>Prompt in, MP4 out</div>
+    <h1><span class="ln">Write a prompt.</span><span class="ln"><em>Get the video.</em></span></h1>
+    <p class="lede">Describe your product, drop in a link or logo, and get a vertical, landscape or square motion video with original music. No editing.</p>
+
+    <form class="composer" id="composer" autocomplete="off">
+      <textarea id="prompt" maxlength="4000" placeholder="A launch video for my coffee shop app. Highlight 15-minute delivery and paying with Apple Pay…"></textarea>
+      <div class="chips" id="chips"></div>
+      <div class="linkrow" id="linkRow"><input type="url" id="linkIn" placeholder="Website or GitHub repo link" aria-label="Link"><button type="button" class="ghost" id="linkAdd">Add</button></div>
+      <div class="bar">
+        <button type="button" class="icon" id="fileBtn" title="Attach logo, screenshot, PDF or notes">+ File</button>
+        <button type="button" class="icon" id="linkBtn" title="Add a link">+ Link</button>
+        <div class="seg" role="radiogroup" aria-label="Format" id="fmt">
+          <button type="button" role="radio" aria-checked="true" data-v="portrait">9:16</button>
+          <button type="button" role="radio" aria-checked="false" data-v="landscape">16:9</button>
+          <button type="button" role="radio" aria-checked="false" data-v="square">1:1</button>
+        </div>
+        <select id="quality" aria-label="Quality"><option value="standard">60 fps</option><option value="draft">Draft (fast)</option><option value="high">High</option></select>
+        <span class="sp"></span>
+        <button type="submit" class="go" id="goBtn" aria-label="Create video" title="Create video"><span class="core"></span></button>
+      </div>
+      <input type="file" id="fileIn" multiple hidden accept="image/png,image/jpeg,image/webp,application/pdf,text/plain,text/markdown,.md">
+    </form>
+    <div id="jobs"></div>
+  </section>
+
+  <div class="ticker" aria-hidden="true"><div id="tick"></div></div>
+
+  <section class="sec" id="how">
+    <div class="sec-h"><h2>From prompt to <em>film</em></h2><p>Everything runs on GitHub. You can close this page; progress picks up when you come back.</p></div>
+    <div class="cards">
+      <div class="card"><small>01</small><div><h3>Write and attach</h3><p>Describe the product, paste a website or repo link, attach a logo or screenshots.</p></div></div>
+      <div class="card"><small>02</small><div><h3>Claude directs</h3><p>It reads your references and writes the script: brand colours, headline, three feature scenes.</p></div></div>
+      <div class="card"><small>03</small><div><h3>Rendered and ready</h3><p>An MP4 with motion blur and original music, published to the gallery below.</p></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="gallery">
+    <div class="sec-h"><h2>Finished <em>videos</em></h2><p id="galCount"></p></div>
+    <div class="grid" id="grid"><div class="empty">Loading videos…</div></div>
+  </section>
 </main>
 
-<dialog id="dlg">
-  <form method="dialog">
-    <h3 style="margin-top:0">Settings</h3>
-    <label for="repo">Repository (owner/name)</label>
-    <input id="repo" placeholder="temiloluwamakinwa/videocreation">
-    <label for="token">GitHub token</label>
-    <input id="token" type="password" placeholder="github_pat_…">
-    <small>Fine-grained token for this repo only, with Contents and Actions set to Read and write. Stored in this browser only.</small>
-    <p style="margin-bottom:0"><button value="ok">Save</button></p>
-  </form>
-</dialog>
+<footer><span><b>videocreation</b>Rendered on GitHub Actions, directed by Claude.</span><a href="#" id="repoLink"></a></footer>
+
+<dialog id="settings"><form class="dlg" method="dialog" id="sForm">
+  <h3>Connect GitHub</h3>
+  <p>Needed to create videos. The gallery works without it on public repos.</p>
+  <label for="repoIn">Repository</label><input id="repoIn" placeholder="owner/repo" spellcheck="false">
+  <label for="tokIn">Fine-grained token</label><input id="tokIn" type="password" placeholder="github_pat_…" spellcheck="false">
+  <p style="margin-top:8px">Create one for this repo only, with Contents and Actions set to Read and write. It stays in this browser.</p>
+  <div class="row"><button class="btn pri" value="save">Save</button><button type="button" class="btn" id="testBtn">Test</button><button type="button" class="btn" id="clrBtn">Remove token</button><span id="testRes" style="font-size:13px"></span></div>
+</form></dialog>
+<dialog id="viewer"><div class="player"><video id="vv" controls autoplay loop playsinline></video><div class="job acts" style="border:0;padding:12px 0 0;margin:0;background:none"><a class="btn pri" id="vDl" download>Download MP4</a><button class="btn" id="vClose" type="button">Close</button></div></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const $ = (id) => document.getElementById(id);
-const guess = (() => { const m = location.hostname.match(/^(.+)\.github\.io$/); const r = location.pathname.split('/')[1];
-  return m && r ? `${m[1]}/${r}` : 'temiloluwamakinwa/videocreation'; })();
-$('repo').value = localStorage.getItem('vc.repo') || guess;
-$('token').value = localStorage.getItem('vc.token') || '';
-$('settingsBtn').onclick = () => $('dlg').showModal();
-$('dlg').addEventListener('close', () => { localStorage.setItem('vc.repo', $('repo').value.trim()); localStorage.setItem('vc.token', $('token').value.trim()); loadGallery(); });
+const $=(id)=>document.getElementById(id);
+const DEFAULT_REPO='temiloluwamakinwa/videocreation';
+const guess=(()=>{const m=location.hostname.match(/^(.+)\.github\.io$/),r=location.pathname.split('/')[1];return m&&r?`${m[1]}/${r}`:DEFAULT_REPO})();
+const store={get:(k)=>localStorage.getItem('vc.'+k)||'',set:(k,v)=>v?localStorage.setItem('vc.'+k,v):localStorage.removeItem('vc.'+k)};
+const repo=()=>store.get('repo')||guess, token=()=>store.get('token');
+const esc=(s)=>String(s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let toastT;const toast=(t,err)=>{const e=$('toast');e.textContent=t;e.className='toast on'+(err?' err':'');clearTimeout(toastT);toastT=setTimeout(()=>e.className='toast',3800)};
 
-const say = (t, err) => { $('status').textContent = t; $('status').className = err ? 'err' : ''; };
-const api = async (path, opts = {}) => {
-  const token = localStorage.getItem('vc.token'), repo = localStorage.getItem('vc.repo') || guess;
-  const r = await fetch(`https://api.github.com/repos/${repo}${path}`, { ...opts,
-    headers: { accept: 'application/vnd.github+json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...(opts.headers || {}) } });
-  if (!r.ok && r.status !== 404) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 200)}`);
+async function gh(path,opts={}){
+  const r=await fetch(`https://api.github.com/repos/${repo()}${path}`,{...opts,headers:{accept:'application/vnd.github+json',...(token()?{authorization:`Bearer ${token()}`}:{}),...(opts.headers||{})}});
+  if(!r.ok&&r.status!==404){let m='';try{m=(await r.json()).message}catch{}throw new Error(`GitHub ${r.status}${m?': '+m:''}`)}
   return r;
-};
-const makeId = () => { const d = new Date(), p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}-${Math.random().toString(36).slice(2, 6)}`; };
-const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
-
-function play(url) { $('player').innerHTML = `<video controls autoplay loop playsinline src="${url}"></video><p><a href="${url}" download>Download MP4</a></p>`; }
-
-async function findRelease(id) {
-  const r = await api(`/releases/tags/video-${id}`);
-  if (r.status === 404) return null;
-  const rel = await r.json();
-  const a = (rel.assets || []).find((x) => x.name.endsWith('.mp4'));
-  return a ? a.browser_download_url : null;
 }
 
-$('go').onclick = async () => {
-  const prompt = $('prompt').value.trim();
-  if (!prompt) return say('Write a prompt first.', true);
-  if (!localStorage.getItem('vc.token')) { $('dlg').showModal(); return say('Add a GitHub token in Settings first.', true); }
-  $('go').disabled = true; $('player').innerHTML = '';
-  try {
-    const id = makeId();
-    const request = { id, prompt, format: $('format').value, links: $('links').value.split('\n').map((s) => s.trim()).filter(Boolean), created: new Date().toISOString() };
-    say('Saving request…');
-    const put = await api(`/contents/requests/${id}/request.json`, { method: 'PUT', body: JSON.stringify({ message: `request ${id}`, content: b64(JSON.stringify(request, null, 2)) }) });
-    if (!put.ok) throw new Error('Could not save the request (check the token and repo).');
-    say('Starting the video workflow…');
-    await api('/actions/workflows/generate.yml/dispatches', { method: 'POST', body: JSON.stringify({ ref: 'main', inputs: { request_id: id, quality: $('quality').value } }) });
-    const start = Date.now();
-    for (;;) {
-      await new Promise((r) => setTimeout(r, 15000));
-      const url = await findRelease(id);
-      const mins = Math.floor((Date.now() - start) / 60000);
-      if (url) { say('Done.'); play(url); loadGallery(); break; }
-      if (mins > 60) throw new Error('Timed out. Check the Actions tab for errors.');
-      say(`Directing and rendering… ${mins} min so far (usually 5–15 min).`);
-    }
-  } catch (e) { say(e.message, true); }
-  $('go').disabled = false;
-};
+/* ticker + header state */
+$('tick').innerHTML=[...Array(2)].map(()=>['60 fps','Real motion blur','Original music','Portrait 9:16','Landscape 16:9','Square 1:1','Claude as director','GitHub Actions'].map((t)=>`<span>${t}</span><b>•</b>`).join('')).join('');
+$('repoLink').textContent=`github.com/${repo()}`;$('repoLink').href=`https://github.com/${repo()}`;
+function paintConn(){const on=!!token();$('dot').className='dot'+(on?' ok':'');$('connTxt').textContent=on?repo().split('/')[0]:'Connect GitHub'}
+paintConn();
 
-async function loadGallery() {
-  try {
-    const r = await api('/releases?per_page=30'); const list = r.ok ? await r.json() : [];
-    const vids = list.filter((x) => x.tag_name.startsWith('video-'));
-    $('gallery').innerHTML = vids.length ? vids.map((x) => `<a href="#" data-id="${x.tag_name.slice(6)}"><strong>${x.tag_name.slice(6)}</strong><br>${(x.body || '').slice(0, 70).replace(/</g, '&lt;')}</a>`).join('') : '<small>No videos yet.</small>';
-    $('gallery').querySelectorAll('a').forEach((a) => a.onclick = async (e) => { e.preventDefault(); const u = await findRelease(a.dataset.id); if (u) play(u); });
-  } catch { $('gallery').innerHTML = '<small>Gallery unavailable.</small>'; }
+/* settings */
+$('connBtn').onclick=()=>{$('repoIn').value=repo();$('tokIn').value=token();$('testRes').textContent='';$('settings').showModal()};
+$('sForm').addEventListener('submit',()=>{store.set('repo',$('repoIn').value.trim());store.set('token',$('tokIn').value.trim());paintConn();loadGallery();$('repoLink').textContent=`github.com/${repo()}`});
+$('clrBtn').onclick=()=>{store.set('token','');$('tokIn').value='';paintConn();$('testRes').textContent='Token removed'};
+$('testBtn').onclick=async()=>{store.set('repo',$('repoIn').value.trim());store.set('token',$('tokIn').value.trim());$('testRes').style.color='var(--muted)';$('testRes').textContent='Checking…';
+  try{const r=await gh('');const j=await r.json();if(r.status===404)throw new Error('Repo not found');$('testRes').style.color=j.permissions?.push?'var(--ok)':'var(--err)';$('testRes').textContent=j.permissions?.push?'Connected':'Token cannot write to this repo';paintConn()}catch(e){$('testRes').style.color='var(--err)';$('testRes').textContent=e.message}};
+
+/* composer state */
+let format='portrait';const files=[],links=[];
+document.querySelectorAll('#fmt button').forEach((b)=>b.onclick=()=>{format=b.dataset.v;document.querySelectorAll('#fmt button').forEach((x)=>x.setAttribute('aria-checked',x===b))});
+const drawChips=()=>{$('chips').innerHTML=[...files.map((f,i)=>`<div class="chip"><span>📎 ${esc(f.name)}</span><button type="button" data-f="${i}" aria-label="Remove">×</button></div>`),...links.map((l,i)=>`<div class="chip"><span>🔗 ${esc(l)}</span><button type="button" data-l="${i}" aria-label="Remove">×</button></div>`)].join('');
+  $('chips').querySelectorAll('button').forEach((b)=>b.onclick=()=>{b.dataset.f!==undefined?files.splice(+b.dataset.f,1):links.splice(+b.dataset.l,1);drawChips()})};
+$('fileBtn').onclick=()=>$('fileIn').click();
+$('fileIn').onchange=(e)=>{for(const f of e.target.files){if(f.size>3_000_000)toast(`${f.name} is over 3 MB, skipped`,true);else if(files.length<6)files.push(f)}e.target.value='';drawChips()};
+$('linkBtn').onclick=()=>{$('linkRow').classList.toggle('on');$('linkIn').focus()};
+const addLink=()=>{let v=$('linkIn').value.trim();if(!v)return;if(!/^https?:\/\//i.test(v))v='https://'+v;if(links.length<3)links.push(v);$('linkIn').value='';drawChips()};
+$('linkAdd').onclick=addLink;$('linkIn').onkeydown=(e)=>{if(e.key==='Enter'){e.preventDefault();addLink()}};
+
+const makeId=()=>{const d=new Date(),p=(n)=>String(n).padStart(2,'0');return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}-${Math.random().toString(36).slice(2,6)}`};
+const b64text=(s)=>btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+const b64file=(f)=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});
+const put=(path,content,msg)=>gh(`/contents/${path}`,{method:'PUT',body:JSON.stringify({message:msg,content})}).then((r)=>{if(!r.ok)throw new Error('Could not save to the repo. Check the token.')});
+
+/* jobs: progress is derived from the workflow run, so it survives a reload */
+const STEPS=[['Request saved','Request'],['Claude directs the film','Direct'],['Rendering video','Render'],['Publishing','Publish release']];
+const jobs=()=>JSON.parse(store.get('jobs')||'[]'), saveJobs=(j)=>store.set('jobs',j.length?JSON.stringify(j.slice(-3)):'');
+function paintJob(j,state){
+  let el=document.getElementById('job-'+j.id);if(!el){el=document.createElement('div');el.className='job';el.id='job-'+j.id;$('jobs').prepend(el)}
+  const rows=STEPS.map(([label],i)=>`<li class="${state.steps[i]||''}"><i></i>${label}</li>`).join('');
+  const head=state.url?'Your video is ready':state.failed?'Something went wrong':'Making your video';
+  const sub=state.failed?`${state.failed} <a href="${esc(state.runUrl||'#')}" target="_blank" rel="noopener" style="text-decoration:underline">See the run log</a>`:state.url?esc(j.prompt.slice(0,120)):'Usually 5 to 15 minutes. You can close this page.';
+  el.innerHTML=`<h3>${head}</h3><p>${sub}</p><ul class="steps">${rows}</ul>${state.url?`<video controls playsinline loop src="${esc(state.url)}"></video><div class="acts"><a class="btn pri" href="${esc(state.url)}" download>Download MP4</a></div>`:''}`;
+}
+async function releaseUrl(id){const r=await gh(`/releases/tags/video-${id}`);if(r.status===404)return null;const rel=await r.json();const a=(rel.assets||[]).find((x)=>x.name.endsWith('.mp4'));return a?a.browser_download_url:null}
+async function track(j){
+  const state={steps:['done','on','',''],url:null,failed:null};paintJob(j,state);
+  for(let n=0;n<400;n++){
+    try{
+      const url=await releaseUrl(j.id);
+      if(url){state.steps=['done','done','done','done'];state.url=url;paintJob(j,state);saveJobs(jobs().filter((x)=>x.id!==j.id));loadGallery();return}
+      const runs=await(await gh('/actions/runs?event=workflow_dispatch&per_page=20')).json();
+      const run=(runs.workflow_runs||[]).find((r)=>(r.display_title||r.name||'').includes(j.id));
+      if(run){
+        state.runUrl=run.html_url;
+        const js=await(await gh(`/actions/runs/${run.id}/jobs`)).json();const steps=(js.jobs?.[0]?.steps)||[];
+        const st=(name)=>steps.find((s)=>s.name===name||s.name.startsWith(name));
+        state.steps=['done',...STEPS.slice(1).map(([,key])=>{const s=st(key);return !s?'':s.conclusion==='success'?'done':s.conclusion==='failure'?'fail':s.status==='in_progress'?'on':s.conclusion==='skipped'?'':''})];
+        if(!state.steps.includes('on')&&!state.steps.includes('fail')){const k=state.steps.indexOf('');if(k>0)state.steps[k]='on'}
+        if(run.status==='completed'&&run.conclusion!=='success'){
+          const bad=state.steps.indexOf('fail');
+          state.failed=bad===1?'The director step failed. Check that the ANTHROPIC_API_KEY secret is set and the account has credit.':'The workflow failed.';paintJob(j,state);saveJobs(jobs().filter((x)=>x.id!==j.id));return}
+        paintJob(j,state);
+      }
+    }catch(e){/* transient: keep polling */}
+    await new Promise((r)=>setTimeout(r,12000));
+  }
+  state.failed='Timed out waiting for the video.';paintJob(j,state);
+}
+
+$('composer').addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  const prompt=$('prompt').value.trim();
+  if(!prompt)return toast('Write a prompt first',true);
+  if(!token()){$('connBtn').click();return toast('Connect GitHub first',true)}
+  $('goBtn').disabled=true;
+  try{
+    const id=makeId();toast('Saving your request…');
+    const names=[];
+    for(const f of files){const safe=f.name.replace(/[^a-zA-Z0-9._-]/g,'_');await put(`requests/${id}/files/${safe}`,await b64file(f),`attach ${safe}`);names.push(safe)}
+    const request={id,prompt,format,links:[...links],files:names,created:new Date().toISOString()};
+    await put(`requests/${id}/request.json`,b64text(JSON.stringify(request,null,2)),`request ${id}`);
+    const d=await gh('/actions/workflows/generate.yml/dispatches',{method:'POST',body:JSON.stringify({ref:'main',inputs:{request_id:id,quality:$('quality').value}})});
+    if(!d.ok)throw new Error('Could not start the workflow');
+    const j={id,prompt};saveJobs([...jobs(),j]);
+    $('prompt').value='';files.length=0;links.length=0;drawChips();
+    track(j);
+  }catch(err){toast(err.message,true)}
+  $('goBtn').disabled=false;
+});
+jobs().forEach(track);
+
+/* gallery */
+function openViewer(url,id){$('vv').src=url;$('vDl').href=url;$('vDl').download=`${id}.mp4`;$('viewer').showModal()}
+$('vClose').onclick=()=>$('viewer').close();$('viewer').addEventListener('close',()=>{$('vv').pause();$('vv').removeAttribute('src')});
+async function loadGallery(){
+  try{
+    const r=await gh('/releases?per_page=40');const list=r.ok?await r.json():[];
+    const vids=list.filter((x)=>x.tag_name.startsWith('video-')).map((x)=>({id:x.tag_name.slice(6),note:x.body||'',url:(x.assets.find((a)=>a.name.endsWith('.mp4'))||{}).browser_download_url})).filter((v)=>v.url);
+    $('galCount').textContent=vids.length?`${vids.length} video${vids.length>1?'s':''}`:'';
+    $('grid').innerHTML=vids.length?vids.map((v,i)=>`<button class="vid" data-i="${i}"><video muted preload="metadata" src="${esc(v.url)}#t=1"></video><div><b>${esc(v.id)}</b><span>${esc(v.note)||'Untitled'}</span></div></button>`).join(''):'<div class="empty">No videos yet. Your first one will show up here.</div>';
+    $('grid').querySelectorAll('.vid').forEach((b)=>b.onclick=()=>openViewer(vids[+b.dataset.i].url,vids[+b.dataset.i].id));
+  }catch{$('grid').innerHTML='<div class="empty">Could not load the gallery. If the repo is private, connect GitHub first.</div>'}
 }
 loadGallery();
 </script>
