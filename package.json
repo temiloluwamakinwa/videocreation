@@ -1,0 +1,19 @@
+{
+  "name": "videocreation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prompt in, MP4 out. Motion video generator: HTML seek(t) films rendered with Playwright + ffmpeg.",
+  "type": "module",
+  "bin": { "videocreation": "bin/vigenco.mjs" },
+  "scripts": {
+    "render": "node bin/vigenco.mjs render",
+    "draft": "node bin/vigenco.mjs render --quality draft",
+    "snap": "node bin/vigenco.mjs snap",
+    "direct": "node bin/direct.mjs"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  },
+  "license": "MIT"
+}

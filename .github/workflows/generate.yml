@@ -1,0 +1,61 @@
+name: Generate video
+run-name: "Video ${{ inputs.request_id }}"
+
+# Started by the page (docs/index.html) after it commits requests/<id>/request.json.
+# The director (Claude API) turns the prompt into a job, the engine renders the MP4,
+# and it is published as the GitHub Release "video-<id>", which the page then plays.
+# Needs the repository secret ANTHROPIC_API_KEY. Optional variable CLAUDE_MODEL.
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: 'Request id (folder under requests/)'
+        required: true
+      quality:
+        description: 'draft | standard | high'
+        required: false
+        default: standard
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ID: ${{ inputs.request_id }}
+    steps:
+      - name: Check request id
+        run: '[[ "$ID" =~ ^[a-z0-9-]{6,48}$ ]] || { echo "invalid request id"; exit 1; }'
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Direct
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
+        run: |
+          [ -n "$ANTHROPIC_API_KEY" ] || { echo "::error::Add the ANTHROPIC_API_KEY repository secret"; exit 1; }
+          node bin/direct.mjs "requests/$ID/request.json" "jobs/generated/$ID.json"
+      - name: Render
+        run: node bin/vigenco.mjs render "jobs/generated/$ID.json" --quality "${{ inputs.quality }}" --out "out/$ID.mp4"
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prompt=$(node -p 'require("./requests/"+process.env.ID+"/request.json").prompt.slice(0,500)')
+          gh release create "video-$ID" "out/$ID.mp4" "jobs/generated/$ID.json" --title "Video $ID" --notes "$prompt" --latest=false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: video-${{ inputs.request_id }}
+          path: out/*.mp4
+          retention-days: 14

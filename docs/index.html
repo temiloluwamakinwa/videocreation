@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Video Creation</title>
+<style>
+  :root { --ink:#111827; --mut:#6b7280; --line:#e5e7eb; --acc:#6C5CE7; --bg:#f7f6f3; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--ink); background:var(--bg); }
+  main { max-width:720px; margin:0 auto; padding:32px 20px 80px; }
+  header { display:flex; justify-content:space-between; align-items:center; }
+  h1 { font-size:28px; margin:0; }
+  p.sub { color:var(--mut); margin:6px 0 24px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:20px; }
+  label { display:block; font-weight:600; font-size:14px; margin:14px 0 6px; }
+  textarea,input,select { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font:inherit; background:#fff; }
+  textarea { min-height:110px; resize:vertical; }
+  .row { display:flex; gap:12px; } .row > * { flex:1; }
+  button { font:inherit; font-weight:600; border:0; border-radius:10px; padding:11px 18px; cursor:pointer; background:var(--acc); color:#fff; }
+  button.ghost { background:#fff; color:var(--ink); border:1px solid var(--line); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  #status { margin-top:16px; font-size:14px; color:var(--mut); white-space:pre-wrap; }
+  #status.err { color:#b91c1c; }
+  video { width:100%; max-height:70vh; border-radius:12px; background:#000; margin-top:14px; }
+  .gal { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+  .gal a { display:block; padding:12px; border:1px solid var(--line); border-radius:12px; text-decoration:none; color:inherit; font-size:13px; }
+  dialog { border:1px solid var(--line); border-radius:16px; max-width:460px; width:92%; }
+  small { color:var(--mut); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Video Creation</h1>
+    <button class="ghost" id="settingsBtn">Settings</button>
+  </header>
+  <p class="sub">Describe your product. Get a motion launch video (MP4).</p>
+
+  <div class="card">
+    <label for="prompt">What is the video about?</label>
+    <textarea id="prompt" placeholder="A launch video for my coffee shop app. Highlight ordering ahead, loyalty points and pickup times."></textarea>
+    <label for="links">Links (optional, one per line: website or repo)</label>
+    <textarea id="links" style="min-height:60px" placeholder="https://example.com"></textarea>
+    <div class="row">
+      <div><label for="format">Format</label>
+        <select id="format"><option value="portrait">Portrait (TikTok, Reels, Shorts)</option><option value="landscape">Landscape (YouTube)</option><option value="square">Square</option></select></div>
+      <div><label for="quality">Quality</label>
+        <select id="quality"><option value="standard">Standard (60 fps)</option><option value="draft">Draft (fast)</option><option value="high">High</option></select></div>
+    </div>
+    <p style="margin:18px 0 0"><button id="go">Create video</button></p>
+    <div id="status"></div>
+    <div id="player"></div>
+  </div>
+
+  <div class="card"><strong>Gallery</strong><div class="gal" id="gallery" style="margin-top:12px"></div></div>
+</main>
+
+<dialog id="dlg">
+  <form method="dialog">
+    <h3 style="margin-top:0">Settings</h3>
+    <label for="repo">Repository (owner/name)</label>
+    <input id="repo" placeholder="temiloluwamakinwa/videocreation">
+    <label for="token">GitHub token</label>
+    <input id="token" type="password" placeholder="github_pat_…">
+    <small>Fine-grained token for this repo only, with Contents and Actions set to Read and write. Stored in this browser only.</small>
+    <p style="margin-bottom:0"><button value="ok">Save</button></p>
+  </form>
+</dialog>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const guess = (() => { const m = location.hostname.match(/^(.+)\.github\.io$/); const r = location.pathname.split('/')[1];
+  return m && r ? `${m[1]}/${r}` : 'temiloluwamakinwa/videocreation'; })();
+$('repo').value = localStorage.getItem('vc.repo') || guess;
+$('token').value = localStorage.getItem('vc.token') || '';
+$('settingsBtn').onclick = () => $('dlg').showModal();
+$('dlg').addEventListener('close', () => { localStorage.setItem('vc.repo', $('repo').value.trim()); localStorage.setItem('vc.token', $('token').value.trim()); loadGallery(); });
+
+const say = (t, err) => { $('status').textContent = t; $('status').className = err ? 'err' : ''; };
+const api = async (path, opts = {}) => {
+  const token = localStorage.getItem('vc.token'), repo = localStorage.getItem('vc.repo') || guess;
+  const r = await fetch(`https://api.github.com/repos/${repo}${path}`, { ...opts,
+    headers: { accept: 'application/vnd.github+json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...(opts.headers || {}) } });
+  if (!r.ok && r.status !== 404) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  return r;
+};
+const makeId = () => { const d = new Date(), p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}-${Math.random().toString(36).slice(2, 6)}`; };
+const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+
+function play(url) { $('player').innerHTML = `<video controls autoplay loop playsinline src="${url}"></video><p><a href="${url}" download>Download MP4</a></p>`; }
+
+async function findRelease(id) {
+  const r = await api(`/releases/tags/video-${id}`);
+  if (r.status === 404) return null;
+  const rel = await r.json();
+  const a = (rel.assets || []).find((x) => x.name.endsWith('.mp4'));
+  return a ? a.browser_download_url : null;
+}
+
+$('go').onclick = async () => {
+  const prompt = $('prompt').value.trim();
+  if (!prompt) return say('Write a prompt first.', true);
+  if (!localStorage.getItem('vc.token')) { $('dlg').showModal(); return say('Add a GitHub token in Settings first.', true); }
+  $('go').disabled = true; $('player').innerHTML = '';
+  try {
+    const id = makeId();
+    const request = { id, prompt, format: $('format').value, links: $('links').value.split('\n').map((s) => s.trim()).filter(Boolean), created: new Date().toISOString() };
+    say('Saving request…');
+    const put = await api(`/contents/requests/${id}/request.json`, { method: 'PUT', body: JSON.stringify({ message: `request ${id}`, content: b64(JSON.stringify(request, null, 2)) }) });
+    if (!put.ok) throw new Error('Could not save the request (check the token and repo).');
+    say('Starting the video workflow…');
+    await api('/actions/workflows/generate.yml/dispatches', { method: 'POST', body: JSON.stringify({ ref: 'main', inputs: { request_id: id, quality: $('quality').value } }) });
+    const start = Date.now();
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 15000));
+      const url = await findRelease(id);
+      const mins = Math.floor((Date.now() - start) / 60000);
+      if (url) { say('Done.'); play(url); loadGallery(); break; }
+      if (mins > 60) throw new Error('Timed out. Check the Actions tab for errors.');
+      say(`Directing and rendering… ${mins} min so far (usually 5–15 min).`);
+    }
+  } catch (e) { say(e.message, true); }
+  $('go').disabled = false;
+};
+
+async function loadGallery() {
+  try {
+    const r = await api('/releases?per_page=30'); const list = r.ok ? await r.json() : [];
+    const vids = list.filter((x) => x.tag_name.startsWith('video-'));
+    $('gallery').innerHTML = vids.length ? vids.map((x) => `<a href="#" data-id="${x.tag_name.slice(6)}"><strong>${x.tag_name.slice(6)}</strong><br>${(x.body || '').slice(0, 70).replace(/</g, '&lt;')}</a>`).join('') : '<small>No videos yet.</small>';
+    $('gallery').querySelectorAll('a').forEach((a) => a.onclick = async (e) => { e.preventDefault(); const u = await findRelease(a.dataset.id); if (u) play(u); });
+  } catch { $('gallery').innerHTML = '<small>Gallery unavailable.</small>'; }
+}
+loadGallery();
+</script>
+</body>
+</html>
