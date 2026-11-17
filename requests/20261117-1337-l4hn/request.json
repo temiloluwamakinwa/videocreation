@@ -1,0 +1,75 @@
+{
+  "id": "20261117-1337-l4hn",
+  "type": "launch",
+  "mode": "instant",
+  "format": "portrait",
+  "prompt": "Glitz & Glam: Your best look, booked in minutes",
+  "created": "2026-11-17T13:37:18.168Z",
+  "job": {
+    "cursorName": "You",
+    "brand": {
+      "name": "Glitz & Glam",
+      "mark": "G",
+      "url": "glitzandglam.co.uk",
+      "colors": {
+        "bg": "#f5f3ef",
+        "ink": "#1B1633",
+        "surface": "#FFFFFF",
+        "accent": [
+          "#6c5ce7",
+          "#e35c91",
+          "#ff8a3d"
+        ]
+      }
+    },
+    "intro": {
+      "lines": [
+        "Look Good",
+        "Feel Good",
+        "Book Today"
+      ]
+    },
+    "brief": {
+      "placeholder": "What do you need?",
+      "text": "Graduation",
+      "button": "Go"
+    },
+    "features": [
+      {
+        "icon": "check",
+        "title": "STANDARD MAKEUP",
+        "desc": "Come to our studio for a full glam session perfect for events, nights out, or birthday",
+        "widget": "toggle",
+        "label": "Turned on"
+      },
+      {
+        "icon": "bolt",
+        "title": "PHOTOGRAPHY",
+        "desc": "1-hour shoot · 5 edited photos · 1 Reel · 1 outfit. Great for social media or a quick bran",
+        "widget": "slider",
+        "label": "Level",
+        "value": 10,
+        "suffix": "x"
+      },
+      {
+        "icon": "play",
+        "title": "Packages",
+        "desc": "",
+        "widget": "tabs",
+        "tabs": [
+          "Glam & Shoot Experience",
+          "Picture Perfect Graduate",
+          "Pro"
+        ]
+      }
+    ],
+    "outro": {
+      "tagline": "Your best look, booked in minutes",
+      "cta": "glitzandglam.co.uk"
+    }
+  },
+  "avatar": {
+    "file": "avatar.png",
+    "name": "Nimi"
+  }
+}
