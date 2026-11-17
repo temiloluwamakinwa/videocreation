@@ -274,6 +274,16 @@ function buildMusic(film) {
   const chords = [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]];   // Am F C G
   const roots = [45, 41, 48, 43];
   const nb = Math.ceil(dur / spb) + 1;
+  if (film.calm) {   // storybook bed: soft pads and a slow pentatonic arpeggio, no drums
+    const arp = [0, 2, 4, 2, 5, 4, 2, 1];
+    for (let k = 0; k < nb; k++) {
+      const t = k * spb, bar = Math.floor(k / 4), ch = chords[bar % 4];
+      if (k % 4 === 0) music.add(pad(ch.map((n) => n + 12), 4 * spb + 0.6, 0.5), t, 0.2);
+      if (k % 2 === 0 && t > 1) music.add(pluck(PENTA[arp[(k / 2) % arp.length]], 0.9, 0.2), t, 0.16);
+    }
+    music.add(pad([57, 64, 69, 72, 76], 3.2, 0.5), Math.max(0, dur - 3.4), 0.22);
+    return music;
+  }
 
   for (let k = 0; k < nb; k++) {
     const t = k * spb, bar = Math.floor(k / 4), beat = k % 4, ch = chords[bar % 4], root = roots[bar % 4];

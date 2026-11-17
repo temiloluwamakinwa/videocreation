@@ -1,0 +1,140 @@
+{
+  "id": "demo-story-1",
+  "type": "story",
+  "mode": "instant",
+  "format": "portrait",
+  "length": "short",
+  "voice": "en-NG-EzinneNeural",
+  "prompt": "The Fox and the Lantern (demo story)",
+  "avatar": {
+    "file": "avatar.png",
+    "name": "Leo"
+  },
+  "job": {
+    "title": "The Fox and the Lantern",
+    "scenes": [
+      {
+        "text": "In a quiet village at the edge of the forest, a little fox named Ola loved the evening.",
+        "setting": "village",
+        "time": "dusk",
+        "camera": "push",
+        "actors": [
+          {
+            "kind": "fox",
+            "name": "Ola",
+            "x": 35,
+            "moveTo": 60
+          }
+        ],
+        "props": [
+          {
+            "kind": "house",
+            "x": 18
+          },
+          {
+            "kind": "tree",
+            "x": 86
+          },
+          {
+            "kind": "lantern",
+            "x": 74
+          }
+        ]
+      },
+      {
+        "text": "One night the lantern went dark, and the whole path fell silent.",
+        "setting": "forest",
+        "time": "night",
+        "camera": "left",
+        "actors": [
+          {
+            "kind": "fox",
+            "name": "Ola",
+            "x": 60,
+            "moveTo": 40
+          },
+          {
+            "kind": "owl",
+            "x": 82
+          }
+        ],
+        "props": [
+          {
+            "kind": "pine",
+            "x": 12
+          },
+          {
+            "kind": "pine",
+            "x": 30,
+            "back": true
+          },
+          {
+            "kind": "moon",
+            "x": 70
+          }
+        ]
+      },
+      {
+        "text": "A girl named Ada waved hello and offered to help.",
+        "setting": "meadow",
+        "time": "dawn",
+        "camera": "right",
+        "actors": [
+          {
+            "kind": "avatar",
+            "name": "Leo",
+            "x": 30,
+            "action": "wave",
+            "skin": "brown"
+          },
+          {
+            "kind": "fox",
+            "name": "Ola",
+            "x": 66
+          }
+        ],
+        "props": [
+          {
+            "kind": "flower",
+            "x": 12
+          },
+          {
+            "kind": "flower",
+            "x": 90
+          },
+          {
+            "kind": "tent",
+            "x": 82,
+            "back": true
+          }
+        ]
+      },
+      {
+        "text": "Together they sailed across the bright blue sea, and the light came back.",
+        "setting": "sea",
+        "time": "day",
+        "camera": "pull",
+        "weather": "clear",
+        "actors": [
+          {
+            "kind": "avatar",
+            "name": "Leo",
+            "x": 38,
+            "skin": "brown"
+          },
+          {
+            "kind": "fox",
+            "name": "Ola",
+            "x": 58
+          }
+        ],
+        "props": [
+          {
+            "kind": "boat",
+            "x": 48
+          }
+        ]
+      }
+    ]
+  }
+}

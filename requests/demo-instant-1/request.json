@@ -1,0 +1,71 @@
+{
+  "id": "demo-instant-1",
+  "type": "launch",
+  "mode": "instant",
+  "format": "portrait",
+  "prompt": "Glitz & Glam: Your best look, booked in a minute.",
+  "created": "2026-11-17T13:14:34.693Z",
+  "job": {
+    "cursorName": "You",
+    "brand": {
+      "name": "Glitz & Glam",
+      "mark": "G",
+      "url": "glitzandglam.co.uk",
+      "colors": {
+        "bg": "#f5f3ef",
+        "ink": "#1B1633",
+        "surface": "#FFFFFF",
+        "accent": [
+          "#6c5ce7",
+          "#e35c91",
+          "#ff8a3d"
+        ]
+      }
+    },
+    "intro": {
+      "lines": [
+        "Look good.",
+        "Feel good.",
+        "Book today."
+      ]
+    },
+    "brief": {
+      "placeholder": "What do you need?",
+      "text": "Bridal makeup in Leeds",
+      "button": "Go"
+    },
+    "features": [
+      {
+        "icon": "check",
+        "title": "Easy booking",
+        "desc": "Pick a slot online in under a minute.",
+        "widget": "toggle",
+        "label": "Turned on"
+      },
+      {
+        "icon": "bolt",
+        "title": "Fast turnaround",
+        "desc": "Photos back within three days.",
+        "widget": "slider",
+        "label": "Level",
+        "value": 10,
+        "suffix": "x"
+      },
+      {
+        "icon": "play",
+        "title": "Packages",
+        "desc": "Makeup, photoshoot or both.",
+        "widget": "tabs",
+        "tabs": [
+          "Makeup",
+          "Photoshoot",
+          "Combo"
+        ]
+      }
+    ],
+    "outro": {
+      "tagline": "Your best look, booked in a minute.",
+      "cta": "glitzandglam.co.uk"
+    }
+  }
+}

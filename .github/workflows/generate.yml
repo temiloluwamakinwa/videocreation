@@ -44,16 +44,28 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_MODEL: ${{ vars.CLAUDE_MODEL }}
         run: |
-          [ -n "$ANTHROPIC_API_KEY" ] || { echo "::error::Add the ANTHROPIC_API_KEY repository secret"; exit 1; }
+          mode=$(node -p 'require("./requests/"+process.env.ID+"/request.json").mode||"ai"')
+          if [ "$mode" != "instant" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::Add the ANTHROPIC_API_KEY repository secret, or use Instant mode"; exit 1
+          fi
           node bin/direct.mjs "requests/$ID/request.json" "jobs/generated/$ID.json"
+      - name: Narrate
+        run: |
+          if [ "$(node -p 'require("./jobs/generated/"+process.env.ID+".json").type')" = "story" ]; then
+            pip install --quiet edge-tts || echo "edge-tts install failed"
+            node bin/voiceover.mjs "jobs/generated/$ID.json"
+          else
+            echo "not a story, skipping narration"
+          fi
       - name: Render
         run: node bin/vigenco.mjs render "jobs/generated/$ID.json" --quality "${{ inputs.quality }}" --out "out/$ID.mp4"
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          prompt=$(node -p 'require("./requests/"+process.env.ID+"/request.json").prompt.slice(0,500)')
-          gh release create "video-$ID" "out/$ID.mp4" "jobs/generated/$ID.json" --title "Video $ID" --notes "$prompt" --latest=false
+          type=$(node -p 'require("./jobs/generated/"+process.env.ID+".json").type')
+          prompt=$(node -p 'const r=require("./requests/"+process.env.ID+"/request.json"); String(r.prompt||r.job?.brand?.name||"").slice(0,500)')
+          gh release create "video-$ID" "out/$ID.mp4" "jobs/generated/$ID.json" --title "Video $ID" --notes "[$type] $prompt" --latest=false
       - uses: actions/upload-artifact@v4
         with:
           name: video-${{ inputs.request_id }}

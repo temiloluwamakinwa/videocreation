@@ -20,7 +20,7 @@ export const QUALITY = {
   high: { fps: 60, sub: 4, crf: 15, preset: 'medium', img: 'png' },
 };
 /** Built-in video types shipped with the package (types/<name>/index.html). */
-export const TYPES = ['launch'];
+export const TYPES = ['launch', 'story'];
 
 let log = (...a) => console.log('[vigenco]', ...a);
 /** Replace the logger (pass () => {} to silence). */
@@ -177,7 +177,17 @@ async function soundtrack(film, spec, work, baseDir) {
   const au = spec.audio && spec.audio.music ? { ...spec.audio, music: path.resolve(baseDir, spec.audio.music) } : spec.audio;
   await writeFile(filmJson, JSON.stringify({ ...film, spec: { ...spec, audio: au } }, null, 2));
   await run(process.execPath, [SYNTH, filmJson, wav]);
-  return wav;
+  // Narration: film.voice = [{ t, file }]. Duck the music under the voice and lay each clip at its time.
+  const voice = (film.voice || []).map((v) => ({ t: v.t, file: path.resolve(baseDir, v.file) })).filter((v) => existsSync(v.file));
+  if (!voice.length) return wav;
+  const out = path.join(work, 'mix-voice.wav');
+  const args = ['-y', '-loglevel', 'error', '-i', wav];
+  voice.forEach((v) => args.push('-i', v.file));
+  const chains = voice.map((v, i) => `[${i + 1}:a]aresample=48000,aformat=channel_layouts=stereo,adelay=${Math.round(v.t * 1000)}|${Math.round(v.t * 1000)},volume=1.6[v${i}]`);
+  const ins = voice.map((_, i) => `[v${i}]`).join('');
+  const fc = [`[0:a]volume=0.4[m]`, ...chains, `[m]${ins}amix=inputs=${voice.length + 1}:normalize=0:duration=first,alimiter=limit=0.95[o]`].join(';');
+  await run('ffmpeg', [...args, '-filter_complex', fc, '-map', '[o]', '-ac', '2', '-ar', '48000', out]);
+  return out;
 }
 
 /**
